@@ -5,10 +5,16 @@ import (
 	"log"
 )
 
+var (
+	ErrDuplicatedUserName = errors.New("duplicated username")
+	ErrUserNotFound       = errors.New("user not found")
+)
+
 type InMemoryRepository map[string]User
 
 type Repository interface {
 	AddUser(userName string) (User, error)
+	DeleteUser(userName string) error
 	AddForbiddenDevice(userId string, deviceId int) error
 	Dump() error
 }
@@ -26,23 +32,28 @@ type authRepository struct {
 func (r *authRepository) AddUser(userName string) (User, error) {
 	_, already := r.data[userName]
 	if already {
-		return User{}, errors.New("user already present")
+		return User{}, ErrDuplicatedUserName
 	}
 
 	user := User{
 		UserName:         userName,
 		ForbiddenDevices: make([]int, 0),
 	}
-
 	r.data[userName] = user
 
 	return user, nil
 }
 
+func (r *authRepository) DeleteUser(userId string) error {
+	delete(r.data, userId)
+
+	return nil
+}
+
 func (r *authRepository) AddForbiddenDevice(userId string, deviceId int) error {
 	user, prs := r.data[userId]
 	if !prs {
-		return errors.New("no user found")
+		return ErrUserNotFound
 	}
 
 	user.ForbiddenDevices = append(user.ForbiddenDevices, deviceId)

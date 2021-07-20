@@ -17,7 +17,18 @@ type authService struct {
 }
 
 func (s *authService) AddUser(userName string) (User, error) {
-	return s.r.AddUser(userName)
+	user, err := s.r.AddUser(userName)
+	if err != nil {
+		return user, err
+	}
+
+	err = NscAddUser(user.UserName)
+	if err != nil {
+		// the logic here sucks (in production we would use a transactional system)
+		s.r.DeleteUser(user.UserName)
+		return User{}, err
+	}
+	return user, nil
 }
 
 func (s *authService) AddForbiddenDevice(userId string, deviceId int) error {
