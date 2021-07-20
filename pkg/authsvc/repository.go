@@ -1,4 +1,4 @@
-package server
+package authsvc
 
 import (
 	"errors"
@@ -41,8 +41,6 @@ func (r *authRepository) AddUser(userName, password string) (User, error) {
 		ForbiddenDevices: make([]int, 0),
 	}
 	r.data[userName] = user
-
-	user.Password = ""
 	return user, nil
 }
 
@@ -51,7 +49,6 @@ func (r authRepository) GetUser(userId string) (User, error) {
 	if !prs {
 		return User{}, ErrUserNotFound
 	}
-	user.Password = ""
 	return user, nil
 }
 
@@ -77,6 +74,5 @@ func (r authRepository) FindUser(userName, password string) (User, error) {
 	if !prs || user.Password != password {
 		return User{}, ErrUserNotFound
 	}
-	user.Password = ""
 	return user, nil
 }

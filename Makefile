@@ -5,3 +5,7 @@ run_server: cmd/server/main.go
 .PHONY: run_nats
 run_nats:
 	nats-server -DV -c nats/server.conf
+
+.PHONY: run_client
+run_client: cmd/client/main.go
+	go run cmd/client/main.go

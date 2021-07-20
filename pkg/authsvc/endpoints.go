@@ -1,4 +1,4 @@
-package server
+package authsvc
 
 import (
 	"context"
@@ -44,14 +44,14 @@ var (
 )
 
 func makeAddUserEndpoint(s AuthService) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (interface{}, error) {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(addUserRequest)
 
 		if req.UserName == "" || req.Password == "" {
 			return addUserResponse{}, ErrDuplicatedUserName
 		}
 
-		v, err := s.AddUser(req.UserName, req.Password)
+		v, err := s.AddUser(ctx, req.UserName, req.Password)
 		if err != nil {
 			return addUserResponse{}, err
 		}
@@ -60,9 +60,9 @@ func makeAddUserEndpoint(s AuthService) endpoint.Endpoint {
 }
 
 func makeAddForbiddenDeviceEndpoint(s AuthService) endpoint.Endpoint {
-	return func(_ context.Context, request interface{}) (interface{}, error) {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(addForbiddenDeviceRequest)
-		err := s.AddForbiddenDevice(req.UserName, req.DeviceId)
+		err := s.AddForbiddenDevice(ctx, req.UserName, req.DeviceId)
 		return addForbiddenDeviceResponse{}, err
 	}
 }
@@ -70,7 +70,7 @@ func makeAddForbiddenDeviceEndpoint(s AuthService) endpoint.Endpoint {
 func makeGetUserEndpoint(s AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(getUserRequest)
-		user, err := s.GetUser(req.UserName)
+		user, err := s.GetUser(ctx, req.UserName)
 		return getUserResponse{user}, err
 	}
 }
@@ -78,7 +78,7 @@ func makeGetUserEndpoint(s AuthService) endpoint.Endpoint {
 func makeLoginEndpoint(s AuthService) endpoint.Endpoint {
 	return func(ctx context.Context, request interface{}) (interface{}, error) {
 		req := request.(loginRequest)
-		user, err := s.Login(req.UserName, req.Password)
+		user, err := s.Login(ctx, req.UserName, req.Password)
 		return loginResponse{user}, err
 	}
 }

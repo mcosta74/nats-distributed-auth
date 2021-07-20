@@ -1,7 +1,7 @@
-package server
+package authsvc
 
 type User struct {
 	UserName         string `json:"username"`
-	Password         string `json:"password,omitempty"`
+	Password         string `json:"-"`
 	ForbiddenDevices []int  `json:"forbidden_devices"`
 }

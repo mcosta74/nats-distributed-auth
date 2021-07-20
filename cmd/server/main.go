@@ -1,12 +1,14 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 
-	kitlog "github.com/go-kit/log"
-	"github.com/mcosta74/nats-distributed-auth/pkg/server"
+	kitlog "github.com/go-kit/kit/log"
+	"github.com/mcosta74/nats-distributed-auth/pkg/authsvc"
 )
 
 func main() {
@@ -22,10 +24,27 @@ func main() {
 	}()
 
 	var (
-		rep = server.NewRepository()
-		s   = server.NewAuthService(rep)
+		rep = authsvc.NewRepository()
+		s   = authsvc.NewAuthService(rep)
 	)
 
-	handler := server.MakeHandler(s)
-	log.Fatal(http.ListenAndServe(":8080", handler))
+	handler := authsvc.MakeHandler(s)
+
+	done := make(chan bool)
+
+	go func() {
+		err := http.ListenAndServe(":8080", handler)
+		logger.Log("msg", fmt.Sprintf("Server stopped: %s", err))
+		done <- true
+	}()
+
+	go func() {
+		sigs := make(chan os.Signal, 1)
+		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+		sig := <-sigs
+		logger.Log("msg", fmt.Sprintf("System Received signal: %s", sig))
+		done <- true
+	}()
+
+	<-done
 }
