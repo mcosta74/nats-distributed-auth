@@ -16,6 +16,7 @@ type Repository interface {
 	GetUser(userName string) (User, error)
 	DeleteUser(userName string) error
 	AddForbiddenDevice(userId string, deviceId int) error
+	FindUser(userName, password string) (User, error)
 }
 
 func NewRepository() Repository {
@@ -69,4 +70,13 @@ func (r *authRepository) AddForbiddenDevice(userId string, deviceId int) error {
 	user.ForbiddenDevices = append(user.ForbiddenDevices, deviceId)
 	r.data[userId] = user
 	return nil
+}
+
+func (r authRepository) FindUser(userName, password string) (User, error) {
+	user, prs := r.data[userName]
+	if !prs || user.Password != password {
+		return User{}, ErrUserNotFound
+	}
+	user.Password = ""
+	return user, nil
 }

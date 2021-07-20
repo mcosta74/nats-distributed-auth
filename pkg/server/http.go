@@ -38,12 +38,22 @@ func MakeHandler(svc AuthService) http.Handler {
 		options...,
 	)
 
+	loginHandler := kithttp.NewServer(
+		makeLoginEndpoint(svc),
+		decodeLoginRequest,
+		kithttp.EncodeJSONResponse,
+		options...,
+	)
+
 	usersRouter := r.PathPrefix("/users").Subrouter()
 	usersRouter.Path("").Methods("POST").Handler(addUserHandler)
 
 	userRouter := usersRouter.PathPrefix("/{userId}").Subrouter()
 	userRouter.Path("").Methods("GET").Handler(getUserHandler)
 	userRouter.Path("/forbidden-devices").Methods("POST").Handler(addForbiddenDeviceHandler)
+
+	authRouter := r.PathPrefix("/auth").Subrouter()
+	authRouter.Path("/login").Methods("POST").Handler(loginHandler)
 
 	return r
 }
@@ -72,6 +82,14 @@ func decodeAddForbiddenDeviceRequest(_ context.Context, r *http.Request) (interf
 	return request, nil
 }
 
+func decodeLoginRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request loginRequest
+	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		return nil, err
+	}
+	return request, nil
+}
+
 func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	if err == nil {
 		panic("encodeError called without error")
@@ -90,6 +108,8 @@ func codeFromErr(err error) int {
 		return http.StatusNotFound
 	case ErrDuplicatedUserName, ErrInvalidRequest:
 		return http.StatusBadRequest
+	case ErrAuthenticationFailed:
+		return http.StatusUnauthorized
 	default:
 		return http.StatusInternalServerError
 	}

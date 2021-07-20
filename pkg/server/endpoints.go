@@ -8,7 +8,7 @@ import (
 )
 
 type addUserRequest struct {
-	UserName string `json:"user_name,omitempty"`
+	UserName string `json:"username,omitempty"`
 	Password string `json:"password,omitempty"`
 }
 
@@ -17,18 +17,27 @@ type addUserResponse struct {
 }
 
 type getUserRequest struct {
-	UserName string `json:"user_name,omitempty"`
+	UserName string `json:"username,omitempty"`
 }
 
 type getUserResponse struct {
 	User
 }
 type addForbiddenDeviceRequest struct {
-	UserName string `json:"user_name,omitempty"`
+	UserName string `json:"username,omitempty"`
 	DeviceId int    `json:"device_id,omitempty"`
 }
 
 type addForbiddenDeviceResponse struct{}
+
+type loginRequest struct {
+	UserName string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
+type loginResponse struct {
+	User
+}
 
 var (
 	ErrInvalidRequest = errors.New("invalid request")
@@ -63,5 +72,13 @@ func makeGetUserEndpoint(s AuthService) endpoint.Endpoint {
 		req := request.(getUserRequest)
 		user, err := s.GetUser(req.UserName)
 		return getUserResponse{user}, err
+	}
+}
+
+func makeLoginEndpoint(s AuthService) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(loginRequest)
+		user, err := s.Login(req.UserName, req.Password)
+		return loginResponse{user}, err
 	}
 }
