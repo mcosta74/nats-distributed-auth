@@ -1,15 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
+	"os"
 
+	kitlog "github.com/go-kit/log"
 	"github.com/mcosta74/nats-distributed-auth/pkg/server"
 )
 
 func main() {
-	fmt.Println("Hello World")
+	var logger kitlog.Logger
+	{
+		logger = kitlog.NewLogfmtLogger(os.Stdout)
+		logger = kitlog.With(logger, "ts", kitlog.DefaultTimestamp, "caller", kitlog.DefaultCaller)
+	}
+
+	logger.Log("msg", "Service Started")
+	defer func() {
+		logger.Log("msg", "Service Stopped")
+	}()
 
 	var (
 		rep = server.NewRepository()

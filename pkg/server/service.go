@@ -1,9 +1,9 @@
 package server
 
 type AuthService interface {
-	AddUser(userName string) (User, error)
+	AddUser(userName, password string) (User, error)
+	GetUser(userName string) (User, error)
 	AddForbiddenDevice(userId string, deviceId int) error
-	Dump() error
 }
 
 func NewAuthService(r Repository) AuthService {
@@ -16,8 +16,8 @@ type authService struct {
 	r Repository
 }
 
-func (s *authService) AddUser(userName string) (User, error) {
-	user, err := s.r.AddUser(userName)
+func (s *authService) AddUser(userName, password string) (User, error) {
+	user, err := s.r.AddUser(userName, password)
 	if err != nil {
 		return user, err
 	}
@@ -31,10 +31,10 @@ func (s *authService) AddUser(userName string) (User, error) {
 	return user, nil
 }
 
-func (s *authService) AddForbiddenDevice(userId string, deviceId int) error {
-	return s.r.AddForbiddenDevice(userId, deviceId)
+func (s authService) GetUser(userName string) (User, error) {
+	return s.r.GetUser(userName)
 }
 
-func (s *authService) Dump() error {
-	return s.r.Dump()
+func (s *authService) AddForbiddenDevice(userId string, deviceId int) error {
+	return s.r.AddForbiddenDevice(userId, deviceId)
 }

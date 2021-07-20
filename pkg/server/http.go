@@ -12,39 +12,40 @@ import (
 func MakeHandler(svc AuthService) http.Handler {
 	r := mux.NewRouter()
 
+	options := []kithttp.ServerOption{
+		// kithttp.ServerErrorHandler(transport.NewLogErrorHandler(logger)),
+		kithttp.ServerErrorEncoder(encodeError),
+	}
+
 	addUserHandler := kithttp.NewServer(
 		makeAddUserEndpoint(svc),
 		decodeAddUserRequest,
-		encodeResponse,
+		kithttp.EncodeJSONResponse,
+		options...,
 	)
 
 	addForbiddenDeviceHandler := kithttp.NewServer(
 		makeAddForbiddenDeviceEndpoint(svc),
 		decodeAddForbiddenDeviceRequest,
-		encodeResponse,
+		kithttp.EncodeJSONResponse,
+		options...,
 	)
 
-	r.Methods("POST").Path("/add-user").Handler(addUserHandler)
-	r.Methods("POST").Path("/add-forbidden-device").Handler(addForbiddenDeviceHandler)
+	getUserHandler := kithttp.NewServer(
+		makeGetUserEndpoint(svc),
+		decodeGetUserRequest,
+		kithttp.EncodeJSONResponse,
+		options...,
+	)
+
+	usersRouter := r.PathPrefix("/users").Subrouter()
+	usersRouter.Path("").Methods("POST").Handler(addUserHandler)
+
+	userRouter := usersRouter.PathPrefix("/{userId}").Subrouter()
+	userRouter.Path("").Methods("GET").Handler(getUserHandler)
+	userRouter.Path("/forbidden-devices").Methods("POST").Handler(addForbiddenDeviceHandler)
 
 	return r
-}
-
-func SetupHTTPHandlers(svc AuthService) {
-	addUserHandler := kithttp.NewServer(
-		makeAddUserEndpoint(svc),
-		decodeAddUserRequest,
-		encodeResponse,
-	)
-
-	addForbiddenDeviceHandler := kithttp.NewServer(
-		makeAddForbiddenDeviceEndpoint(svc),
-		decodeAddForbiddenDeviceRequest,
-		encodeResponse,
-	)
-
-	http.Handle("/add-user", addUserHandler)
-	http.Handle("/add-forbidden-device", addForbiddenDeviceHandler)
 }
 
 func decodeAddUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
@@ -55,14 +56,49 @@ func decodeAddUserRequest(_ context.Context, r *http.Request) (interface{}, erro
 	return request, nil
 }
 
+func decodeGetUserRequest(_ context.Context, r *http.Request) (interface{}, error) {
+	var request getUserRequest
+
+	request.UserName = mux.Vars(r)["userId"]
+	return request, nil
+}
+
 func decodeAddForbiddenDeviceRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var request addForbiddenDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
 		return nil, err
 	}
+	request.UserName = mux.Vars(r)["userId"]
 	return request, nil
 }
 
-func encodeResponse(_ context.Context, w http.ResponseWriter, response interface{}) error {
-	return json.NewEncoder(w).Encode(response)
+func encodeError(_ context.Context, err error, w http.ResponseWriter) {
+	if err == nil {
+		panic("encodeError called without error")
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(codeFromErr(err))
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"error": err.Error(),
+	})
+}
+
+func codeFromErr(err error) int {
+	switch err {
+	case ErrUserNotFound:
+		return http.StatusNotFound
+	case ErrDuplicatedUserName, ErrInvalidRequest:
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+func (r addUserResponse) StatusCode() int {
+	return http.StatusCreated
+}
+
+func (r addForbiddenDeviceResponse) StatusCode() int {
+	return http.StatusNoContent
 }
