@@ -1,11 +1,11 @@
-.PHONY: run_server
-run_server: cmd/server/main.go
-	go run cmd/server/main.go
+.PHONY: run_service
+run_service: 
+	go run cmd/authsvc/authsvc.go
 
 .PHONY: run_nats
 run_nats:
 	nats-server -DV -c nats/server.conf
 
 .PHONY: run_client
-run_client: cmd/client/main.go
-	go run cmd/client/main.go
+run_client:
+	go run cmd/authclient/authclient.go
